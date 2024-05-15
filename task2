@@ -1,0 +1,111 @@
+# ***Predict Movie ratings***
+
+#Import necessary libraries
+import pandas as pd
+
+#Load the dataset
+df=pd.read_csv('/content/IMDb Movies India.csv',encoding='latin1')
+
+print(df.head())
+
+#Data cleaning
+print(df.isnull().sum())
+
+print(df.describe())
+
+print(df.dtypes)
+
+#handling missing values
+from sklearn.preprocessing import LabelEncoder,OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+df['Director'].fillna('Unknown',inplace=True)
+df['Actor 1'].fillna('Unknown',inplace=True)
+df['Actor 2'].fillna('Unknown',inplace=True)
+df['Actor 3'].fillna('Unknown',inplace=True)
+
+#Function to clean year column by remving non-numeric data
+def clean(year):
+  return pd.to_numeric(year.str.extract('(\d+)',expand=False))
+df['Year']=clean(df['Year'])
+
+
+
+
+
+df['Year'].fillna(df['Year'].median(), inplace=True)
+print(df.head())
+
+def Cleaning(attr):
+  return pd.to_numeric(attr.str.replace(r'\D','',regex=True),errors='coerce')
+df['Duration']=Cleaning(df['Duration'])
+df['Votes']=Cleaning(df['Votes'])
+
+df['Duration'].fillna(df['Duration'].median(), inplace=True)
+df['Votes'].fillna(df['Votes'].median(), inplace=True)
+
+#Replacing missing values with median values
+imp=SimpleImputer(strategy='median')
+df['Year']=imp.fit_transform(df[['Year']])
+
+
+df.head()
+
+print(df.dtypes)
+
+#Encoding categorical variables using OneHotEncoder
+category=['Name','Genre','Director','Actor 1','Actor 2','Actor 3']
+numeric=['Year','Duration','Votes']
+
+p=ColumnTransformer(transformers=[('numeric',SimpleImputer(strategy='median'),numeric),('Category',OneHotEncoder(handle_unknown='ignore'),category)])
+
+print(df.head())
+
+# Drop rows with missing target values
+df.dropna(subset=['Rating'], inplace=True)
+
+x=df.drop('Rating',axis=1)
+y=df['Rating']
+
+x_transformed=p.fit_transform(x)
+
+print(x_transformed)
+
+print(df.isnull().sum())
+
+df['Rating']=imp.fit_transform(df[['Rating']])
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib.pyplot as plt
+
+x_train,x_test,y_train,y_test=train_test_split(x_transformed,y,test_size=0.3,random_state=34)
+
+m=RandomForestRegressor(n_estimators=10,random_state=34)
+
+m.fit(x_train,y_train)
+
+
+from sklearn.metrics import mean_squared_error,r2_score
+y_pred=m.predict(x_test)
+
+mean_squared_error=(y_test,y_pred)
+r2=r2_score(y_test,y_pred)
+
+print("Mean sqaured error:::",mean_squared_error)
+print("r2 score:::",r2)
+
+
+# Plot actual vs predicted ratings
+plt.scatter(y_test, y_pred)
+plt.xlabel('Actual Ratings')
+plt.ylabel('Predicted Ratings')
+plt.title('Actual vs Predicted Ratings')
+plt.show()
+
+# Displaying some of the actual and predicted values
+r = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
+print(r.head(10))
