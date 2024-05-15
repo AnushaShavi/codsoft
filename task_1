@@ -1,0 +1,121 @@
+# **Prediction on titanic dataset**
+
+
+#Import necessary libraries
+import pandas as pd
+
+#load the dataset
+d=pd.read_csv('/content/tested.csv')
+
+#printing 5 first few rows of d
+print(d.head(5))
+
+#Data cleaning and exploration
+
+#Checking for missing values using isnull function
+print(d.isnull().sum())
+
+#To know more about dataset like statistics
+print(d.describe())
+
+#To know aqbout the datatype of each attribute
+print(d.dtypes)
+
+#Feature extraction and feature engineering
+
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+
+#Filling the median value inplace of null values for attribute age
+imp=SimpleImputer(strategy='median')
+d['Age']=imp.fit_transform(d[['Age']])
+
+
+print(d[['Age']])
+print(d.isnull().sum())
+
+#Fill missing values for attributr 'Fare'
+d['Fare']=imp.fit_transform(d[['Fare']])
+
+print(d[['Fare']])
+print(d.isnull().sum())
+
+#Encoding categorical columns
+labelEncoder=LabelEncoder()
+d['Cabin']=labelEncoder.fit_transform(d['Cabin'])
+
+#Replacing with median or We can drop cabin column as it has more null values
+#Here,we'll replace it with median value
+d['Cabin']=imp.fit_transform(d[['Cabin']])
+
+print(d[['Cabin']])
+print(d.isnull().sum())
+
+
+#Encode other categorical columns
+d['Sex']=labelEncoder.fit_transform(d['Sex'])
+
+
+d['Embarked']=labelEncoder.fit_transform(d['Embarked'])
+
+d['Name']=labelEncoder.fit_transform(d['Name'])
+
+d['Ticket']=labelEncoder.fit_transform(d['Ticket'])
+
+d.head()
+
+#Model building
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score,classification_report
+
+#definining x and y
+x=d.drop('Survived',axis=1)
+y=d['Survived']
+
+print(x)
+print(y)
+
+#Split the dataset into training n testing
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.3,random_state=24)
+
+#model
+m=RandomForestClassifier(n_estimators=100,random_state=24)
+
+#Train the model
+m.fit(x_train,y_train)
+
+
+
+#Prediction
+y_pred=m.predict(x_test)
+
+#Evaluating the model
+print("Accuracy:",accuracy_score(y_test,y_pred))
+print("Classification_report:",classification_report(y_test,y_pred))
+
+#Visualisation of model evaluation
+from sklearn.metrics import confusion_matrix,roc_auc_score,roc_curve
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+#Confusion matrix plot
+cm=confusion_matrix(y_test,y_pred)
+sns.heatmap(cm,annot=True)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion matrix of titanic dataset')
+plt.show()
+
+#ROC curve
+y_pred_proba=m.predict_proba(x_test)[:,1]
+FPR,TPR,thresholds=roc_curve(y_test,y_pred_proba)
+plt.plot(FPR,TPR,marker='*')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.show()
+
+
+# AUC score
+print("AUC Score: ",roc_auc_score(y_test, y_pred_proba))
